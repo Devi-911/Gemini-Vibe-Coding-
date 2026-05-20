@@ -1,0 +1,6 @@
+{
+  "name": "BPMN & DMN Testing Lab",
+  "description": "An interactive full-stack suite to upload, parse, validate, and simulate BPMN process models and DMN decision tables using Google Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
