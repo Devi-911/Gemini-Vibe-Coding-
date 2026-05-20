@@ -3,6 +3,7 @@ import { ModelFile, ValidationResponse, SimulationResult, TestCase } from "./typ
 import { SAMPLE_MODELS } from "./data/examples";
 import { Sidebar } from "./components/Sidebar";
 import { XmlEditor } from "./components/XmlEditor";
+import { ModelVisualizer } from "./components/ModelVisualizer";
 import {
   ShieldAlert,
   Play,
@@ -21,7 +22,8 @@ import {
   ArrowRight,
   Database,
   ExternalLink,
-  Plus
+  Plus,
+  Network
 } from "lucide-react";
 
 export default function App() {
@@ -59,6 +61,8 @@ export default function App() {
   const [generatedCases, setGeneratedCases] = useState<TestCase[]>([]);
   const [isGeneratingCases, setIsGeneratingCases] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+
+  const [activeVisualElementId, setActiveVisualElementId] = useState<string | null>(null);
 
   // Save files to localStorage whenever modified
   useEffect(() => {
@@ -460,6 +464,20 @@ export default function App() {
                         </p>
                       </div>
 
+                      {/* Interactive Visual Graph Sequence Flow Canvas */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
+                          <Network className="w-3.5 h-3.5 text-slate-500" />
+                          Interactive Process & Decision Map
+                        </h4>
+                        <ModelVisualizer
+                          graph={validationResult.visualGraph}
+                          fileType={validationResult.fileType}
+                          activeElementId={activeVisualElementId}
+                          onSelectNode={(nodeId) => setActiveVisualElementId(nodeId)}
+                        />
+                      </div>
+
                       {/* Issues and Compliance Checklist */}
                       <div>
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3 flex items-center gap-2">
@@ -787,10 +805,28 @@ export default function App() {
                                   <span className="text-[8px] font-bold text-indigo-700">{step.stepNumber}</span>
                                 </div>
 
-                                <div className="bg-white border border-slate-150 rounded-xl p-3 shadow-none hover:border-slate-350 transition-colors">
+                                <div 
+                                  onClick={() => {
+                                    if (step.elementId) {
+                                      setActiveVisualElementId(step.elementId);
+                                      setActiveTab("validate");
+                                    }
+                                  }}
+                                  className={`border rounded-xl p-3 shadow-none transition-all cursor-pointer ${
+                                    activeVisualElementId === step.elementId
+                                      ? "bg-indigo-50/50 border-indigo-450 ring-2 ring-indigo-400/10"
+                                      : "bg-white border-slate-150 hover:border-slate-300 hover:shadow-xs"
+                                  }`}
+                                  title={step.elementId ? `Click to look up element '${step.elementId}' inside process canvas` : undefined}
+                                >
                                   <div className="flex items-start justify-between gap-1.5">
-                                    <h5 className="font-bold text-slate-800">
+                                    <h5 className="font-bold text-slate-800 flex items-center gap-1.5">
                                       {step.elementName || "Gate / Task Step"}
+                                      {step.elementId && (
+                                        <span className="text-[9px] text-indigo-500 font-medium underline">
+                                          (Show Map)
+                                        </span>
+                                      )}
                                     </h5>
                                     
                                     <span className="text-[9px] font-mono font-medium text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded shrink-0">

@@ -46,6 +46,25 @@ export interface ValidationResponse {
   issues?: ValidationIssue[];
   inputVariables?: InputVariable[];
   outputVariables?: OutputVariable[];
+  visualGraph?: VisualGraph;
+}
+
+export interface VisualNode {
+  id: string;
+  label: string;
+  type: string;
+}
+
+export interface VisualEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+}
+
+export interface VisualGraph {
+  nodes: VisualNode[];
+  edges: VisualEdge[];
 }
 
 export interface ExecutionStep {

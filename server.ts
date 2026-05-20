@@ -108,7 +108,24 @@ Structure:
       "type": "string" | "number" | "boolean" | "date",
       "description": "Expected outcome or computed variable"
     }
-  ]
+  ],
+  "visualGraph": {
+    "nodes": [
+      {
+        "id": "element_id",
+        "label": "Short human friendly label (e.g., 'Apply Risk Model' or 'Score < 500?')",
+        "type": "StartEvent | UserTask | ServiceTask | EndEvent | Gateway | DecisionTable | InputData | etc."
+      }
+    ],
+    "edges": [
+      {
+        "id": "sequence_flow_id",
+        "source": "source_node_id",
+        "target": "target_node_id",
+        "label": "Optional label like 'Yes' or 'No' or condition expression description"
+      }
+    ]
+  }
 }`;
 
     const prompt = `Perform validation on the following XML file: "${fileName || "unnamed_model.xml"}"
