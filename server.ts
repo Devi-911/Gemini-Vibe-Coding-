@@ -309,6 +309,83 @@ ${xml.slice(0, 100000)}
   }
 });
 
+// 5. Modify Model structured XML following standardized OMG spec edits
+app.post("/api/modify-model", async (req, res) => {
+  try {
+    const { xml, fileType, action, elementId, changes } = req.body;
+    if (!xml || !action || !elementId) {
+      res.status(400).json({ error: "xml, action, and elementId parameters are required." });
+      return;
+    }
+
+    const ai = getGeminiClient();
+
+    const systemInstruction = `You are a strict, professional BPMN 2.0 and DMN 1.3 XML source code modifier.
+Your task is to take an original compliant BPMN or DMN XML document, apply a specified properties adjustment or model element addition/deletion, and return a JSON containing the modified XML.
+
+Standard OMG specifications constraints to follow:
+- ID fields in XML must always be unique alphanumeric values.
+- All tags must open and close correctly. Do not alter any parent schema namespaces or namespaces prefixes (e.g. bpmn:, dmn:, etc.).
+- Ensure that you support:
+  1. "update":
+     - Find the element matching the provided ID 'elementId' (e.g., matching the 'id' attribute).
+     - If 'changes.name' is provided, change the 'name' attribute value to the requested name.
+     - If 'changes.type' is provided, refactor the XML tag format (e.g., change from <userTask> to <serviceTask> or <exclusiveGateway>, or change <definitions> components) while keeping its 'id' and 'name' attributes intact. Make sure to replace both opening and closing tags.
+  2. "add":
+     - Append a new sibling element inside the appropriate process container. Generate a unique, compliant XML ID for it based on the requested type (e.g. 'Task_abc123' or 'Gateway_xyz456').
+     - Create a brand new <sequenceFlow> or standard reference connecting the core node 'elementId' directly to the new node.
+     - If 'changes.appendNode.condition' is provided, render it properly inside the <sequenceFlow> element using a standard <conditionExpression> child block.
+     - Splicing (Flow Healing): If 'elementId' previously had an outgoing flow, modify that flow's sourceRef so that it starts from the newly created node instead. This perfectly splices the new node inside the process sequence!
+     - Detached Add: If 'elementId' is "detached" or empty, simply append the node under the main process/definitions element without automatically linking it.
+  3. "delete":
+     - Find and purge the element matching 'elementId'.
+     - Flow Healing: If elementId had an incoming flow from Node A and an outgoing flow to Node B, purge both flow tags. Create a new single <sequenceFlow> connecting Node A directly to Node B. This bridges the path seamlessly!
+  4. "connect":
+     - Create a brand new standard connecting element (e.g., a <sequenceFlow> for BPMN or an <informationRequirement> connector for DMN) with its source reference set as 'elementId' and destination/target reference set as 'changes.targetId'.
+     - Set a unique, compliant ID for this new connection. If 'changes.label' is defined, apply it as the name/label attribute of the connection.
+  5. "fix-issue":
+     - Apply targeted modifications to resolve the specific modeling anomaly or rule violation specified in 'changes.fixSuggestion' (related to element 'elementId'). Perform the exact XML refactoring needed to cure the warning or error cleanly.
+
+Keep all visual BPMN-DI diagram representation configurations unchanged or simply adjust labels. Do not corrupt the layout nodes or positioning definitions.
+
+You MUST respond strictly with a valid JSON matching this schema:
+{
+  "success": true,
+  "xml": "Insert FULL refactored, valid BPMN or DMN XML string of the file here",
+  "message": "Action outcome summary e.g. 'Successfully refactored task_1 to Service Task with new name Approval Gate'"
+}`;
+
+    const prompt = `Please perform this structural modification on the XML model:
+Original File Type: ${fileType || "bpmn"}
+Action requested: ${action}
+Target Element ID: ${elementId}
+Modifications Details: ${JSON.stringify(changes || {})}
+
+XML Content:
+\`\`\`xml
+${xml}
+\`\`\`
+`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        temperature: 0.1,
+      },
+    });
+
+    const resultText = response.text || "{}";
+    res.setHeader("Content-Type", "application/json");
+    res.send(resultText);
+  } catch (error: any) {
+    console.error("Modify model error:", error);
+    res.status(500).json({ error: error.message || "An unexpected error occurred during model refactoring." });
+  }
+});
+
 // Serve frontend build or mount Vite development middleware
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
